@@ -43,5 +43,6 @@ struct WAVE
 };
 
 Result open_wave(const char *path, WAVE *wavefile);
+Result read_wave(const char *buffer, size_t size, size_t offset, const char *path, WAVE *wavefile);
 
 } // namespace media::wave

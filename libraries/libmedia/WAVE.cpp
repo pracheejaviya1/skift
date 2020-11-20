@@ -173,3 +173,23 @@ Result media::wave::open_wave(const char *buffer, WAVE *wavefile)
 
     return SUCCESS;
 }
+
+Result media::wave::read_wave(const char *buffer, size_t size, size_t offset, const char *path, WAVE *wavefile)
+{
+    int seek;
+    size_t read;
+    __cleanup(stream_cleanup) Stream *stream = stream_open(path, OPEN_READ);
+    seek = stream_seek(stream, offset + 44, WHENCE_HERE);
+    if (handle_has_error(stream))
+    {
+        return handle_get_error(stream);
+    }
+    if (seek == (offset + 44))
+    {
+        if (handle_has_error(stream))
+        {
+            return handle_get_error(stream);
+        }
+        read = stream_read(stream, &buffer, size);
+    }
+}
