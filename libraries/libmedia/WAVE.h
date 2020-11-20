@@ -42,4 +42,6 @@ struct WAVE
     DATA data;
 };
 
+Result open(const char *path, WAVE *wavefile);
+
 } // namespace media::wave
