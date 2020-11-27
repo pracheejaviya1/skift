@@ -1,5 +1,8 @@
 #pragma once
 
+#include <libsystem/io/File.h>
+#include <libsystem/io/Filesystem.h>
+#include <libsystem/io/Stream.h>
 #include <libutils/Endian.h>
 
 namespace media::wave
@@ -42,7 +45,24 @@ struct WAVE
     DATA data;
 };
 
-Result open_wave(const char *path, WAVE *wavefile);
-Result read_wave(const char *buffer, size_t size, size_t offset, const char *path, WAVE *wavefile);
+class WaveDecoder
+{
+
+private:
+    char path[PATH_LENGTH];
+    WAVE wavemetadata;
+    Stream *wavedata;
+    Result open_wave(const char *path);
+
+public:
+    WaveDecoder(const char *path);
+    ~WaveDecoder();
+    Result read_wave(const char *buffer, size_t size);
+    // decide what to use to seek : time or byte offset
+    Result seek_wave(size_t offset);
+};
+
+// Result open_wave(const char *path, WAVE *wavefile);
+// Result read_wave(const char *buffer, size_t size, size_t offset, const char *path, WAVE *wavefile);
 
 } // namespace media::wave

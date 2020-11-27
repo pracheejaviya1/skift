@@ -7,189 +7,187 @@
 
 #include "WAVE.h"
 
-Result media::wave::open_wave(const char *buffer, WAVE *wavefile)
+media::wave::WaveDecoder::WaveDecoder(const char *path)
 {
-    __cleanup(stream_cleanup) Stream *stream = stream_open(buffer, OPEN_READ);
-    if (handle_has_error(stream))
+    open_wave(path);
+}
+
+media::wave::WaveDecoder::~WaveDecoder()
+{
+    stream_close(wavedata);
+}
+
+Result media::wave::WaveDecoder::open_wave(const char *buffer)
+{
+    wavedata = stream_open(buffer, OPEN_READ);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
 
     size_t read;
 
     // get chunk id
     char chunk_id[4];
-    read = stream_read(stream, &chunk_id, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &chunk_id, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        strcpy(wavefile->riff.chunk.id, chunk_id);
+        strcpy(wavemetadata.riff.chunk.id, chunk_id);
     }
 
     // get chunk size
     char chunk_size[4];
-    read = stream_read(stream, &chunk_size, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &chunk_size, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        wavefile->riff.chunk.size = (uint16_t)chunk_size;
+        wavemetadata.riff.chunk.size = (uint16_t)chunk_size;
     }
 
     // get format
     char format[4];
-    read = stream_read(stream, &format, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &format, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        strcpy(wavefile->riff.format, format);
+        strcpy(wavemetadata.riff.format, format);
     }
 
     //  get subchunk1 id
     char subchunk1_id[4];
-    read = stream_read(stream, &subchunk1_id, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &subchunk1_id, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        strcpy(wavefile->fmt.chunk.id, subchunk1_id);
+        strcpy(wavemetadata.fmt.chunk.id, subchunk1_id);
     }
 
     //  get subchunk1 size
     char subchunk1_size[4];
-    read = stream_read(stream, &subchunk1_size, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &subchunk1_size, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        wavefile->fmt.chunk.size = (uint16_t)subchunk1_size;
+        wavemetadata.fmt.chunk.size = (uint16_t)subchunk1_size;
     }
 
     //  get format
     char audio_format[2];
-    read = stream_read(stream, &audio_format, 2);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &audio_format, 2);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 2)
     {
-        wavefile->fmt.audio_format = (uint16_t)audio_format;
+        wavemetadata.fmt.audio_format = (uint16_t)audio_format;
     }
 
     //  get channels
     char num_channels[2];
-    read = stream_read(stream, &num_channels, 2);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &num_channels, 2);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 2)
     {
-        wavefile->fmt.num_channel = (uint16_t)num_channels;
+        wavemetadata.fmt.num_channel = (uint16_t)num_channels;
     }
 
     //  get sample rate
     char sample_rate[4];
-    read = stream_read(stream, &sample_rate, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &sample_rate, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        wavefile->fmt.sample_rate = (uint16_t)sample_rate;
+        wavemetadata.fmt.sample_rate = (uint16_t)sample_rate;
     }
 
     //  get byte rate
     char byte_rate[4];
-    read = stream_read(stream, &byte_rate, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &byte_rate, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        wavefile->fmt.byte_rate = (uint16_t)byte_rate;
+        wavemetadata.fmt.byte_rate = (uint16_t)byte_rate;
     }
 
     //  block align
     char block_align[2];
-    read = stream_read(stream, &block_align, 2);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &block_align, 2);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 2)
     {
-        wavefile->fmt.byte_per_block = (uint16_t)block_align;
+        wavemetadata.fmt.byte_per_block = (uint16_t)block_align;
     }
     //  bits per sample
     char bits_per_sample[2];
-    read = stream_read(stream, &bits_per_sample, 2);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &bits_per_sample, 2);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 2)
     {
-        wavefile->fmt.bits_per_sample = (uint16_t)bits_per_sample;
+        wavemetadata.fmt.bits_per_sample = (uint16_t)bits_per_sample;
     }
     //  subchunk2 ID
     char subchunk2_id[4];
-    read = stream_read(stream, &subchunk2_id, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &subchunk2_id, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        strcpy(wavefile->data.chunk.id, subchunk2_id);
+        strcpy(wavemetadata.data.chunk.id, subchunk2_id);
     }
 
     //  subchunk2 size
     char subchunk2_size[4];
-    read = stream_read(stream, &subchunk2_size, 4);
-    if (handle_has_error(stream))
+    read = stream_read(wavedata, &subchunk2_size, 4);
+    if (handle_has_error(wavedata))
     {
-        return handle_get_error(stream);
+        return handle_get_error(wavedata);
     }
     if (read == 4)
     {
-        wavefile->data.chunk.size = (uint16_t)subchunk2_size;
+        wavemetadata.data.chunk.size = (uint16_t)subchunk2_size;
     }
 
     return SUCCESS;
 }
 
-Result media::wave::read_wave(const char *buffer, size_t size, size_t offset, const char *path, WAVE *wavefile)
+Result media::wave::WaveDecoder::read_wave(const char *buffer, size_t size)
 {
     int seek;
     size_t read;
-    __cleanup(stream_cleanup) Stream *stream = stream_open(path, OPEN_READ);
-    seek = stream_seek(stream, offset + 44, WHENCE_HERE);
-    if (handle_has_error(stream))
-    {
-        return handle_get_error(stream);
-    }
-    if (seek == (offset + 44))
-    {
-        if (handle_has_error(stream))
-        {
-            return handle_get_error(stream);
-        }
-        read = stream_read(stream, &buffer, size);
-    }
+    read = stream_read(wavedata, &buffer, size);
+    return SUCCESS;
 }
