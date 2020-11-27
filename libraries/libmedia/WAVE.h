@@ -59,7 +59,7 @@ public:
     ~WaveDecoder();
     Result read_wave(const char *buffer, size_t size);
     // decide what to use to seek : time or byte offset
-    Result seek_wave(size_t offset);
+    Result seek_wave(int time_seconds);
 };
 
 // Result open_wave(const char *path, WAVE *wavefile);

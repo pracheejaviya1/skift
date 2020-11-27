@@ -186,8 +186,17 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
 
 Result media::wave::WaveDecoder::read_wave(const char *buffer, size_t size)
 {
-    int seek;
     size_t read;
     read = stream_read(wavedata, &buffer, size);
+    if (handle_has_error(wavedata))
+    {
+        return handle_get_error(wavedata);
+    }
     return SUCCESS;
+}
+
+Result media::wave::WaveDecoder::seek_wave(int time_seconds)
+{
+    le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
+    stream_seek(wavedata, time_seconds * sample_rate(), WHENCE_HERE);
 }
