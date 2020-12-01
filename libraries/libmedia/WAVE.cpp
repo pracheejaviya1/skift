@@ -6,6 +6,7 @@
 #include <libutils/Path.h>
 
 #include "WAVE.h"
+#include "kernel/drivers/AC97.h"
 
 media::wave::WaveDecoder::WaveDecoder(const char *path)
 {
@@ -205,4 +206,29 @@ Result media::wave::WaveDecoder::seek_wave(int time_seconds)
         return handle_get_error(wavedata);
     }
     return SUCCESS;
+}
+
+char media::wave::WaveDecoder::upsample_wave(char *buffer_in, char *buffer_out)
+{
+    int i = 1;
+    le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
+    le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
+
+    int resampling_factor;
+    int mean;
+
+    resampling_factor = 192000 / (sample_rate() * bits_per_sample());
+
+    while (buffer_in)
+    {
+        if (i % resampling_factor == 0)
+        {
+            buffer_out[i] = (buffer_in[i - 1] + buffer_in[i + 1]) / 2;
+            i++;
+        }
+        buffer_out[i] = buffer_in[i];
+        i++;
+    }
+
+    return *buffer_out;
 }

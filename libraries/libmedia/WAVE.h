@@ -58,11 +58,7 @@ public:
     WaveDecoder(const char *path);
     ~WaveDecoder();
     Result read_wave(const char *buffer, size_t size);
-    // decide what to use to seek : time or byte offset
     Result seek_wave(int time_seconds);
+    char upsample_wave(char *buffer_in, char *buffer_out);
 };
-
-// Result open_wave(const char *path, WAVE *wavefile);
-// Result read_wave(const char *buffer, size_t size, size_t offset, const char *path, WAVE *wavefile);
-
 } // namespace media::wave
