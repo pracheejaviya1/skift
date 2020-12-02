@@ -60,5 +60,6 @@ public:
     Result read_wave(const char *buffer, size_t size);
     Result seek_wave(int time_seconds);
     char upsample_wave(char *buffer_in, char *buffer_out);
+    char downsample_wave(char *buffer_in, char *buffer_out);
 };
 } // namespace media::wave
