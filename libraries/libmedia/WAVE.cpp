@@ -3,6 +3,7 @@
 #include <libsystem/io/File.h>
 #include <libsystem/io/Filesystem.h>
 #include <libsystem/io/Stream.h>
+#include <libsystem/json/Json.h>
 #include <libutils/Path.h>
 
 #include "WAVE.h"
@@ -185,14 +186,50 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     return SUCCESS;
 }
 
-Result media::wave::WaveDecoder::read_wave(const char *buffer, size_t size)
+Result media::wave::WaveDecoder::read_wave(char *buffer, size_t size)
 {
     size_t read;
-    read = stream_read(wavedata, &buffer, size);
+
+    // char *buffer_two;
+    // int i, j, two_seconds;
+
+    le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
+    le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
+
+    // two_seconds = sample_rate() * bits_per_sample() * 2;
+    char inputbuffer[AC97_BDL_BUFFER_LEN];
+    read = stream_read(wavedata, &inputbuffer, size * (sample_rate() * bits_per_sample() / 96000));
+
     if (handle_has_error(wavedata))
     {
         return handle_get_error(wavedata);
     }
+    if (sample_rate() < 48000)
+    {
+        upsample_wave(inputbuffer, buffer);
+    }
+    else
+    {
+        downsample_wave(inputbuffer, buffer);
+    }
+    // for (i = 0; i < (size * 8); i = i + two_seconds)
+    // {
+    //     for (j = 0; j < two_seconds; j++)
+    //     {
+    //         buffer_two[j] = buffer[i];
+    //         if (i % two_seconds == 0)
+    //         {
+    //             if (sample_rate() < 48000)
+    //             {
+    //                 upsample_wave(buffer_two, buffer);
+    //             }
+    //             else
+    //             {
+    //                 downsample_wave(buffer_two, buffer);
+    //             }
+    //         }
+    //     }
+    // }
     return SUCCESS;
 }
 
@@ -208,18 +245,17 @@ Result media::wave::WaveDecoder::seek_wave(int time_seconds)
     return SUCCESS;
 }
 
-char media::wave::WaveDecoder::upsample_wave(char *buffer_in, char *buffer_out)
+Result media::wave::WaveDecoder::upsample_wave(char *buffer_in, char *buffer_out)
 {
-    int i = 1;
+    int i = 0;
     le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
     le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
 
     int resampling_factor;
-    int mean;
 
-    resampling_factor = 192000 / (sample_rate() * bits_per_sample());
+    resampling_factor = 96000 / (sample_rate() * bits_per_sample());
 
-    while (i < 192000)
+    while (i < AC97_BDL_BUFFER_LEN)
     {
         if (i % resampling_factor == 0)
         {
@@ -229,19 +265,17 @@ char media::wave::WaveDecoder::upsample_wave(char *buffer_in, char *buffer_out)
         buffer_out[i] = buffer_in[i];
         i++;
     }
-
-    return *buffer_out;
+    return SUCCESS;
 }
 
-char media::wave::WaveDecoder::downsample_wave(char *buffer_in, char *buffer_out)
+Result media::wave::WaveDecoder::downsample_wave(char *buffer_in, char *buffer_out)
 {
-    int i;
+    int i = 0;
     le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
     le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
     int resampling_factor;
-    resampling_factor = 192000 / (sample_rate() * bits_per_sample());
-
-    while (i < 192000)
+    resampling_factor = 96000 / (sample_rate() * bits_per_sample());
+    while (i < AC97_BDL_BUFFER_LEN)
     {
         if (i % resampling_factor == 0)
         {
@@ -249,6 +283,7 @@ char media::wave::WaveDecoder::downsample_wave(char *buffer_in, char *buffer_out
             buffer_out[i] = buffer_in[i];
         }
         buffer_out[i] = buffer_in[i];
+        i++;
     }
-    return *buffer_out;
+    return SUCCESS;
 }
