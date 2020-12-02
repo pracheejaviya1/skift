@@ -219,7 +219,7 @@ char media::wave::WaveDecoder::upsample_wave(char *buffer_in, char *buffer_out)
 
     resampling_factor = 192000 / (sample_rate() * bits_per_sample());
 
-    while (buffer_in)
+    while (i < 192000)
     {
         if (i % resampling_factor == 0)
         {
@@ -230,5 +230,25 @@ char media::wave::WaveDecoder::upsample_wave(char *buffer_in, char *buffer_out)
         i++;
     }
 
+    return *buffer_out;
+}
+
+char media::wave::WaveDecoder::downsample_wave(char *buffer_in, char *buffer_out)
+{
+    int i;
+    le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
+    le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
+    int resampling_factor;
+    resampling_factor = 192000 / (sample_rate() * bits_per_sample());
+
+    while (i < 192000)
+    {
+        if (i % resampling_factor == 0)
+        {
+            i--;
+            buffer_out[i] = buffer_in[i];
+        }
+        buffer_out[i] = buffer_in[i];
+    }
     return *buffer_out;
 }
