@@ -47,7 +47,6 @@ struct WAVE
 
 class WaveDecoder
 {
-
 private:
     char path[PATH_LENGTH];
     WAVE wavemetadata;
@@ -57,9 +56,9 @@ private:
 public:
     WaveDecoder(const char *path);
     ~WaveDecoder();
-    Result read_wave(const char *buffer, size_t size);
+    Result read_wave(char *buffer, size_t size);
     Result seek_wave(int time_seconds);
-    char upsample_wave(char *buffer_in, char *buffer_out);
-    char downsample_wave(char *buffer_in, char *buffer_out);
+    Result upsample_wave(char *buffer_in, char *buffer_out);
+    Result downsample_wave(char *buffer_in, char *buffer_out);
 };
 } // namespace media::wave
