@@ -56,9 +56,9 @@ private:
 public:
     WaveDecoder(const char *path);
     ~WaveDecoder();
-    Result read_wave(char *buffer, size_t size);
-    Result seek_wave(int time_seconds);
-    Result upsample_wave(char *buffer_in, char *buffer_out);
-    Result downsample_wave(char *buffer_in, char *buffer_out);
+    Result read_wave(char buffer[], size_t size);
+    //   Result seek_wave(int time_seconds);
+    Result upsample_wave(char buffer_in[], char buffer_out[]);
+    Result downsample_wave(char buffer_in[], char buffer_out[]);
 };
 } // namespace media::wave

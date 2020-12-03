@@ -1,10 +1,10 @@
 #include "kernel/drivers/AC97.h"
-#include <libmedia/WAVE.h>
+#include "libmedia/WAVE.h"
 #include <libsystem/io/File.h>
 #include <libsystem/io/Filesystem.h>
 #include <libsystem/io/Stream.h>
 #include <libutils/Path.h>
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
 
     if (argc == 1)
@@ -18,7 +18,9 @@ int main(int argc, char **argv)
     {
         return handle_get_error(streamin);
     }
-    media::wave::WaveDecoder resampler = media::wave::WaveDecoder(argv[1]);
+    // media::wave::WaveDecoder resampler = media::wave::WaveDecoder(argv[1]);
+
+    auto resampler = new media::wave::WaveDecoder(argv[1]);
 
     __cleanup(stream_cleanup) Stream *streamout = stream_open("/Devices/sound", OPEN_WRITE | OPEN_CREATE);
 
@@ -36,7 +38,8 @@ int main(int argc, char **argv)
         {
             return handle_get_error(streamin);
         }
-        resampler.read_wave(buffer, read);
+        // resampler.read_wave(buffer, read);
+        resampler->read_wave(buffer, read);
 
         stream_write(streamout, buffer, read);
 

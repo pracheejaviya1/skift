@@ -1,5 +1,3 @@
-#pragma once
-
 #include <libsystem/io/File.h>
 #include <libsystem/io/Filesystem.h>
 #include <libsystem/io/Stream.h>
@@ -50,7 +48,7 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 4)
     {
-        wavemetadata.riff.chunk.size = (uint16_t)chunk_size;
+        wavemetadata.riff.chunk.size = (uintptr_t)chunk_size;
     }
 
     // get format
@@ -86,7 +84,7 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 4)
     {
-        wavemetadata.fmt.chunk.size = (uint16_t)subchunk1_size;
+        wavemetadata.fmt.chunk.size = (uintptr_t)subchunk1_size;
     }
 
     //  get format
@@ -98,7 +96,7 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 2)
     {
-        wavemetadata.fmt.audio_format = (uint16_t)audio_format;
+        wavemetadata.fmt.audio_format = (uintptr_t)audio_format;
     }
 
     //  get channels
@@ -110,7 +108,7 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 2)
     {
-        wavemetadata.fmt.num_channel = (uint16_t)num_channels;
+        wavemetadata.fmt.num_channel = (uintptr_t)num_channels;
     }
 
     //  get sample rate
@@ -122,7 +120,7 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 4)
     {
-        wavemetadata.fmt.sample_rate = (uint16_t)sample_rate;
+        wavemetadata.fmt.sample_rate = (uintptr_t)sample_rate;
     }
 
     //  get byte rate
@@ -134,7 +132,7 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 4)
     {
-        wavemetadata.fmt.byte_rate = (uint16_t)byte_rate;
+        wavemetadata.fmt.byte_rate = (uintptr_t)byte_rate;
     }
 
     //  block align
@@ -146,7 +144,7 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 2)
     {
-        wavemetadata.fmt.byte_per_block = (uint16_t)block_align;
+        wavemetadata.fmt.byte_per_block = (uintptr_t)block_align;
     }
     //  bits per sample
     char bits_per_sample[2];
@@ -157,7 +155,8 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 2)
     {
-        wavemetadata.fmt.bits_per_sample = (uint16_t)bits_per_sample;
+
+        wavemetadata.fmt.bits_per_sample = (uintptr_t)bits_per_sample;
     }
     //  subchunk2 ID
     char subchunk2_id[4];
@@ -180,16 +179,14 @@ Result media::wave::WaveDecoder::open_wave(const char *buffer)
     }
     if (read == 4)
     {
-        wavemetadata.data.chunk.size = (uint16_t)subchunk2_size;
+        wavemetadata.data.chunk.size = (uintptr_t)subchunk2_size;
     }
 
     return SUCCESS;
 }
 
-Result media::wave::WaveDecoder::read_wave(char *buffer, size_t size)
+Result media::wave::WaveDecoder::read_wave(char buffer[], size_t size)
 {
-    size_t read;
-
     // char *buffer_two;
     // int i, j, two_seconds;
 
@@ -198,7 +195,7 @@ Result media::wave::WaveDecoder::read_wave(char *buffer, size_t size)
 
     // two_seconds = sample_rate() * bits_per_sample() * 2;
     char inputbuffer[AC97_BDL_BUFFER_LEN];
-    read = stream_read(wavedata, &inputbuffer, size * (sample_rate() * bits_per_sample() / 96000));
+    stream_read(wavedata, &inputbuffer, size * (sample_rate() * bits_per_sample() / 96000));
 
     if (handle_has_error(wavedata))
     {
@@ -233,57 +230,70 @@ Result media::wave::WaveDecoder::read_wave(char *buffer, size_t size)
     return SUCCESS;
 }
 
-Result media::wave::WaveDecoder::seek_wave(int time_seconds)
+// Result media::wave::WaveDecoder::seek_wave(int time_seconds)
+// {
+//     int seekwave;
+//     le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
+//     seekwave = stream_seek(wavedata, time_seconds * sample_rate(), WHENCE_HERE);
+//     if (handle_has_error(wavedata))
+//     {
+//         return handle_get_error(wavedata);
+//     }
+//     return SUCCESS;
+// }
+
+Result media::wave::WaveDecoder::upsample_wave(char buffer_in[], char buffer_out[])
 {
-    int seekwave;
+    int i = 1;
+    int j = 1;
     le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
-    seekwave = stream_seek(wavedata, time_seconds * sample_rate(), WHENCE_HERE);
-    if (handle_has_error(wavedata))
+    //le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
+
+    int resampling_factor;
+
+    // resampling_factor = 96000 / (sample_rate() * bits_per_sample());
+    resampling_factor = (48000 / sample_rate()) * 2;
+
+    buffer_out[0] = buffer_in[0];
+
+    while (i < 2 * AC97_BDL_BUFFER_LEN)
     {
-        return handle_get_error(wavedata);
+        if (i % resampling_factor == 0)
+        {
+            buffer_out[j + 1] = buffer_in[i] & 0x00FF;
+            buffer_out[j + 1] = buffer_out[j + 1] << 8;
+            buffer_out[j + 1] = buffer_in[i + 1] & 0xFF00;
+            j++;
+        }
+
+        buffer_out[j] = buffer_in[i];
+        i++;
+        j++;
     }
     return SUCCESS;
 }
 
-Result media::wave::WaveDecoder::upsample_wave(char *buffer_in, char *buffer_out)
+Result media::wave::WaveDecoder::downsample_wave(char buffer_in[], char buffer_out[])
 {
-    int i = 0;
+    int i = 1;
+    int j = 1;
     le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
-    le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
-
     int resampling_factor;
+    resampling_factor = (48000 / sample_rate()) * 2;
+    buffer_out[0] = buffer_in[0];
 
-    resampling_factor = 96000 / (sample_rate() * bits_per_sample());
-
-    while (i < AC97_BDL_BUFFER_LEN)
+    while (i < 2 * AC97_BDL_BUFFER_LEN - 1)
     {
         if (i % resampling_factor == 0)
         {
-            buffer_out[i] = (buffer_in[i - 1] + buffer_in[i + 1]) / 2;
             i++;
+            buffer_out[j] = buffer_in[i];
         }
-        buffer_out[i] = buffer_in[i];
-        i++;
-    }
-    return SUCCESS;
-}
-
-Result media::wave::WaveDecoder::downsample_wave(char *buffer_in, char *buffer_out)
-{
-    int i = 0;
-    le_uint32_t sample_rate = wavemetadata.fmt.sample_rate;
-    le_uint16_t bits_per_sample = wavemetadata.fmt.bits_per_sample;
-    int resampling_factor;
-    resampling_factor = 96000 / (sample_rate() * bits_per_sample());
-    while (i < AC97_BDL_BUFFER_LEN)
-    {
-        if (i % resampling_factor == 0)
+        else
         {
-            i--;
-            buffer_out[i] = buffer_in[i];
+            buffer_out[j] = buffer_in[i];
         }
-        buffer_out[i] = buffer_in[i];
-        i++;
+        j++;
     }
     return SUCCESS;
 }
